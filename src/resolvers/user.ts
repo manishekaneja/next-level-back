@@ -1,65 +1,23 @@
-import {
-  Arg,
-  Ctx,
-  Field,
-  InputType,
-  Mutation,
-  ObjectType,
-  Query,
-  Resolver,
-} from 'type-graphql';
-import { __cookie_name__ } from '../constants';
-import { User } from '../entities/User';
-import { MyContext } from '../types';
-
-@InputType()
-class UsernamePasswordInput {
-  @Field()
-  username!: string;
-
-  @Field()
-  password!: string;
-
-  @Field({
-    nullable: true,
-  })
-  first_name: string;
-
-  @Field({
-    nullable: true,
-  })
-  last_name: string;
-}
-
-@ObjectType()
-class FieldError {
-  @Field(() => String)
-  field: String;
-
-  @Field(() => String)
-  message: String;
-}
-
-@ObjectType()
-class UserResponse {
-  @Field(() => [FieldError], { nullable: true })
-  errors?: FieldError[];
-
-  @Field(() => User, { nullable: true })
-  user?: User;
-}
+import { getUserFroUserId } from "../utilies/getUserFroimUserId";
+import { Arg, Ctx, Mutation, Query, Resolver } from "type-graphql";
+import { __cookie_name__ } from "../constants";
+import { User } from "../entities/User";
+import { MyContext } from "../types";
+import { UsernamePasswordInput } from "../types/UsernamePasswordInput";
+import { UserResponse } from "../types/UserResponse";
 
 @Resolver()
 export class UserResolver {
   @Mutation(() => UserResponse)
   register(
     @Ctx() { em, request }: MyContext,
-    @Arg('options')
-    { username, password, first_name, last_name }: UsernamePasswordInput
+    @Arg("options")
+    { username, email, password, first_name, last_name }: UsernamePasswordInput
   ): UserResponse {
     const user = em.create(User, {
       username,
       password,
+      email,
       first_name,
       last_name,
     });
@@ -75,7 +33,7 @@ export class UserResolver {
   })
   async login(
     @Ctx() { em, request }: MyContext,
-    @Arg('options') { username, password }: UsernamePasswordInput
+    @Arg("options") { username, password }: UsernamePasswordInput
   ): Promise<UserResponse> {
     try {
       const user: User = await em.findOneOrFail(User, {
@@ -88,8 +46,8 @@ export class UserResolver {
         return {
           errors: [
             {
-              field: 'Incorrect',
-              message: 'Wrong username/password',
+              field: "Incorrect",
+              message: "Wrong username/password",
             },
           ],
         };
@@ -98,7 +56,7 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: 'Internal Error',
+            field: "Internal Error",
             message: error.message,
           },
         ],
@@ -115,17 +73,13 @@ export class UserResolver {
         return {
           errors: [
             {
-              field: 'Not Identified',
-              message: 'Perform to Login Operation',
+              field: "Not Identified",
+              message: "Perform to Login Operation",
             },
           ],
         };
       }
-      const id = request.session.userId;
-
-      const user = await em.findOneOrFail(User, {
-        id,
-      });
+      const user = await getUserFroUserId(request.session.userId, em);
       return {
         user,
       };
@@ -133,7 +87,7 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: 'Internal Error',
+            field: "Internal Error",
             message: error.message,
           },
         ],
@@ -144,7 +98,7 @@ export class UserResolver {
   @Mutation(() => Boolean)
   logout(
     @Ctx() { request, response }: MyContext,
-    @Arg('removeAll') removeAll: boolean
+    @Arg("removeAll") removeAll: boolean
   ) {
     try {
       console.log({ removeAll });
@@ -162,7 +116,7 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: 'Internal Error',
+            field: "Internal Error",
             message: error.message,
           },
         ],

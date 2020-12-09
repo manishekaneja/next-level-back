@@ -1,29 +1,28 @@
-import { MikroORM } from '@mikro-orm/core';
-import { ApolloServer } from 'apollo-server-express';
-import connectRedis from 'connect-redis';
-import cors from 'cors';
-import express from 'express';
-import session from 'express-session';
-import redis from 'redis';
-import 'reflect-metadata';
-import { buildSchema } from 'type-graphql';
-import {
-  __app_server_ip__,
-  __cookie_name__,
-  __port__,
-  __prod__,
-} from './constants';
-import mikroOrmConfig from './mikro-orm.config';
-import { PostResolver } from './resolvers/post';
-import { UserResolver } from './resolvers/user';
+import { MikroORM } from "@mikro-orm/core";
+import { ApolloServer } from "apollo-server-express";
+import connectRedis from "connect-redis";
+import cors from "cors";
+import express from "express";
+import session from "express-session";
+import redis from "redis";
+import "reflect-metadata";
+import { buildSchema } from "type-graphql";
+import { __cookie_name__, __port__, __prod__ } from "./constants";
+import mikroOrmConfig from "./mikro-orm.config";
+import { DataGenResolver } from "./resolvers/dataGen";
+import { UserGroupResolver } from "./resolvers/group";
+import { PostResolver } from "./resolvers/post";
+import { TransactionResolver } from "./resolvers/transaction";
+import { UserResolver } from "./resolvers/user";
 
 const main = async (): Promise<void> => {
   const orm: MikroORM = await MikroORM.init(mikroOrmConfig);
+  // await orm.getMigrator().createMigration();
   await orm.getMigrator().up();
 
   const appServer = express();
   const RedisStore = connectRedis(session);
-  const redisClient = redis.createClient();
+  const redisClient = redis.createClient("redis://redis-db");
 
   appServer.use(
     session({
@@ -34,11 +33,11 @@ const main = async (): Promise<void> => {
         disableTTL: true,
       }),
       resave: false,
-      secret: 'keyboard cat',
+      secret: "keyboard cat",
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: "lax",
         secure: __prod__,
       },
       saveUninitialized: false,
@@ -47,14 +46,20 @@ const main = async (): Promise<void> => {
 
   appServer.use(
     cors({
-      origin: 'http://localhost:3000',
+      origin: true,
       credentials: true,
     })
   );
 
   const apolloServer: ApolloServer = new ApolloServer({
     schema: await buildSchema({
-      resolvers: [PostResolver, UserResolver],
+      resolvers: [
+        PostResolver,
+        UserResolver,
+        TransactionResolver,
+        UserGroupResolver,
+        DataGenResolver,
+      ],
       validate: false,
     }),
     context: ({ req, res }) => {
@@ -68,10 +73,10 @@ const main = async (): Promise<void> => {
   apolloServer.applyMiddleware({
     app: appServer,
     cors: {
-      origin: 'http://localhost:3000',
+      origin: true,
     },
   });
-  appServer.listen(__port__, __app_server_ip__, function (): void {
+  appServer.listen(__port__, function (): void {
     console.log(`Server running @ ${__port__}`);
   });
 };
