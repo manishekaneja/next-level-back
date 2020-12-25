@@ -1,8 +1,9 @@
 // import { UserGroup } from "src/entities/UserGroup";
-import { Transaction } from "../entities/Transaction";
 import { Arg, Ctx, Mutation, Resolver } from "type-graphql";
+import { ApplicationUser } from "../entities/ApplicationUser";
 import { Group } from "../entities/Group";
-import { User } from "../entities/User";
+import { Split } from "../entities/Split";
+import { Transaction } from "../entities/Transaction";
 import { MyContext } from "../types";
 @Resolver()
 export class TransactionResolver {
@@ -14,14 +15,22 @@ export class TransactionResolver {
     @Arg("userid") userid: number,
     @Arg("groupid") groupid: number
   ) {
-    const user = await em.findOneOrFail(User, { id: userid });
+    const user = await em.findOneOrFail(ApplicationUser, { id: userid });
     const group = await em.findOneOrFail(Group, { id: groupid });
+    const split = em.create(Split,{
+      onwer:em.getReference(ApplicationUser,user.id),
+      splitAmount:amount,      
+    })
+
+    group.memberList.init();
+    console.log(">>>>",group.memberList)
     const transaction = em.create(Transaction, {
       message: message,
       amount: amount,
+      splitList:[split]
     });
-    user.transactions_made.add(transaction);
-    group.transactions_made.add(transaction);
+    user.transactionList.add(transaction);
+    group.transactionList.add(transaction);
     await em.persistAndFlush(user);
     return true;
   }
@@ -32,8 +41,8 @@ export class TransactionResolver {
     @Arg("userid") userid: number,
     @Arg("groupid") groupid: number
   ) {
-    const user = await em.findOneOrFail(User, { id: userid });
-    user.groups.add(em.getReference(Group, groupid));
+    const user = await em.findOneOrFail(ApplicationUser, { id: userid });
+    user.groupList.add(em.getReference(Group, groupid));
     await em.persistAndFlush(user);
     return true;
   }

@@ -8,11 +8,12 @@ import {
 } from "@mikro-orm/core";
 import { Field, ObjectType } from "type-graphql";
 import { Group } from "./Group";
+import { Split } from "./Split";
 import { Transaction } from "./Transaction";
 
 @ObjectType()
 @Entity()
-export class User {
+export class ApplicationUser {
   @Field()
   @PrimaryKey({
     unique: true,
@@ -30,11 +31,11 @@ export class User {
 
   @Field()
   @Property({ type: "text" })
-  first_name!: string;
+  firstname!: string;
 
   @Field()
   @Property({ type: "text" })
-  last_name!: string;
+  lastname!: string;
 
   @Field()
   @Property({ type: "text", unique: true })
@@ -44,27 +45,26 @@ export class User {
   @Property({ type: "text" })
   email!: string;
 
-
   @Property({ type: "text" })
   password!: string;
 
   @Field(() => [Group])
-  @OneToMany(() => Group, (group) => group.created_by, {
-    orphanRemoval: true,
-  })
-  owned_groups = new Collection<Group>(this);
-
-  @Field(() => [Group])
-  @ManyToMany(() => Group, (group) => group.members, {
+  @ManyToMany(() => Group, (group) => group.memberList, {
     owner: true,
     default: [],
     nullable: false,
   })
-  groups = new Collection<Group>(this);
+  groupList = new Collection<Group>(this);
 
   @Field(() => [Transaction])
-  @OneToMany(() => Transaction, (group) => group.done_by, {
+  @OneToMany(() => Transaction, (transaction) => transaction.owner, {
     orphanRemoval: true,
   })
-  transactions_made = new Collection<Transaction>(this);
+  transactionList = new Collection<Transaction>(this);
+
+  @Field(() => [Split])
+  @OneToMany(() => Split, (split) => split.onwer, {
+    orphanRemoval: true,
+  })
+  splitList = new Collection<Split>(this);
 }

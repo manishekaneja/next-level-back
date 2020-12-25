@@ -5,22 +5,21 @@ export class UsernamePasswordInput {
   @Field()
   username!: string;
 
-  
   @Field()
   password!: string;
 
   @Field({
-    nullable:true
-  })
-  email: string;
-  
-  @Field({
     nullable: true,
   })
-  first_name: string;
+  email: string;
 
   @Field({
     nullable: true,
   })
-  last_name: string;
+  firstname: string;
+
+  @Field({
+    nullable: true,
+  })
+  lastname: string;
 }

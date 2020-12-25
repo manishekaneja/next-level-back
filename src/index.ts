@@ -13,7 +13,7 @@ import { DataGenResolver } from "./resolvers/dataGen";
 import { UserGroupResolver } from "./resolvers/group";
 import { PostResolver } from "./resolvers/post";
 import { TransactionResolver } from "./resolvers/transaction";
-import { UserResolver } from "./resolvers/user";
+import { ApplicationUserResolver } from "./resolvers/applicationUser";
 
 const main = async (): Promise<void> => {
   const orm: MikroORM = await MikroORM.init(mikroOrmConfig);
@@ -55,7 +55,7 @@ const main = async (): Promise<void> => {
     schema: await buildSchema({
       resolvers: [
         PostResolver,
-        UserResolver,
+        ApplicationUserResolver,
         TransactionResolver,
         UserGroupResolver,
         DataGenResolver,
@@ -76,6 +76,7 @@ const main = async (): Promise<void> => {
       origin: true,
     },
   });
+  // appServer.get("/",(_,res)=>{res.send("OK");})
   appServer.listen(__port__, function (): void {
     console.log(`Server running @ ${__port__}`);
   });

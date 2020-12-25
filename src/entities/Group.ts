@@ -2,14 +2,14 @@ import {
   Collection,
   Entity,
   ManyToMany,
-  ManyToOne,
+
   OneToMany,
   PrimaryKey,
-  Property,
+  Property
 } from "@mikro-orm/core";
 import { Field, ObjectType } from "type-graphql";
+import { ApplicationUser } from "./ApplicationUser";
 import { Transaction } from "./Transaction";
-import { User } from "./User";
 
 @ObjectType()
 @Entity()
@@ -33,17 +33,13 @@ export class Group {
   @Property({ type: "text" })
   name!: string;
 
-  @Field(() => User)
-  @ManyToOne(() => User)
-  created_by!: User;
-
   @Field(() => [Transaction])
-  @OneToMany(() => Transaction, (group) => group.belong_to, {
+  @OneToMany(() => Transaction, (transaction) => transaction.groupRef, {
     orphanRemoval: true,
   })
-  transactions_made = new Collection<Transaction>(this);
+  transactionList = new Collection<Transaction>(this);
 
-  @Field(() => [User])
-  @ManyToMany(() => User, (user) => user.groups)
-  members = new Collection<User>(this);
+  @Field(() => [ApplicationUser])
+  @ManyToMany(() => ApplicationUser, (user) => user.groupList)
+  memberList = new Collection<ApplicationUser>(this);
 }

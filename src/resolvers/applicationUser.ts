@@ -1,25 +1,25 @@
-import { getUserFroUserId } from "../utilies/getUserFroimUserId";
 import { Arg, Ctx, Mutation, Query, Resolver } from "type-graphql";
 import { __cookie_name__ } from "../constants";
-import { User } from "../entities/User";
+import { ApplicationUser } from "../entities/ApplicationUser";
 import { MyContext } from "../types";
 import { UsernamePasswordInput } from "../types/UsernamePasswordInput";
 import { UserResponse } from "../types/UserResponse";
+import { getUserFroUserId } from "../utilies/getUserFroimUserId";
 
 @Resolver()
-export class UserResolver {
+export class ApplicationUserResolver {
   @Mutation(() => UserResponse)
   register(
     @Ctx() { em, request }: MyContext,
     @Arg("options")
-    { username, email, password, first_name, last_name }: UsernamePasswordInput
+    { username, email, password, firstname, lastname }: UsernamePasswordInput
   ): UserResponse {
-    const user = em.create(User, {
+    const user = em.create(ApplicationUser, {
       username,
       password,
       email,
-      first_name,
-      last_name,
+      firstname,
+      lastname,
     });
     em.persistAndFlush(user);
     request.session.userId = user.id;
@@ -36,9 +36,13 @@ export class UserResolver {
     @Arg("options") { username, password }: UsernamePasswordInput
   ): Promise<UserResponse> {
     try {
-      const user: User = await em.findOneOrFail(User, {
-        username,
-      });
+      const user: ApplicationUser = await em.findOneOrFail(
+        ApplicationUser,
+        {
+          username,
+        },
+        ["groupList"]
+      );
       if (user.password === password) {
         request.session.userId = user.id;
         return { user };
@@ -80,6 +84,7 @@ export class UserResolver {
         };
       }
       const user = await getUserFroUserId(request.session.userId, em);
+      console.log({ user });
       return {
         user,
       };
@@ -121,6 +126,24 @@ export class UserResolver {
           },
         ],
       };
+    }
+  }
+
+  @Query(() => [ApplicationUser], {
+    nullable: false,
+  })
+  getUserList(
+    @Ctx() { em }: MyContext,
+    @Arg("searchKey") searchKey: string
+  ): Promise<Array<ApplicationUser>> | Array<ApplicationUser> {
+    if (searchKey) {
+      return em.find(ApplicationUser, {
+        username: {
+          $ilike: `%${searchKey}%`,
+        },
+      });
+    } else {
+      return [] as Array<ApplicationUser>;
     }
   }
 }

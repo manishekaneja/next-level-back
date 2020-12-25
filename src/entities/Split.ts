@@ -1,12 +1,11 @@
-import { Entity, ManyToOne, OneToMany, PrimaryKey, Property } from "@mikro-orm/core";
+import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/core";
 import { Field, ObjectType } from "type-graphql";
-import { Group } from "./Group";
-import { Split } from "./Split";
 import { ApplicationUser } from "./ApplicationUser";
+import { Transaction } from './Transaction';
 
 @ObjectType()
 @Entity()
-export class Transaction {
+export class Split {
   @Field()
   @PrimaryKey({
     type: "number",
@@ -22,26 +21,18 @@ export class Transaction {
   @Property({ type: "date", onUpdate: () => new Date() })
   updatedAt = new Date();
 
-  @Field()
-  @Property({ type: "text" })
-  message!: string;
 
   @Field()
   @Property({ type: "number" })
-  amount!: number;
+  splitAmount!: number;
 
   @Field(() => ApplicationUser)
   @ManyToOne(() => ApplicationUser)
-  owner!: ApplicationUser;
+  onwer!: ApplicationUser;
 
-  @Field(() => Group)
-  @ManyToOne(() => Group, {
+  @Field(() => Transaction)
+  @ManyToOne(() => Transaction, {
     nullable: false,
   })
-  groupRef: Group;
-
-  @Field(() => [Split])
-  @OneToMany(() => Split,(split)=>split.transactionRef)
-  splitList: Split;
-
+  transactionRef: Transaction;
 }
