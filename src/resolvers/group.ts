@@ -1,35 +1,38 @@
 // import { UserGroup } from "src/entities/UserGroup";
-import { UserIdList } from "../types/UserResponse";
-import { Arg, Ctx, Field, Mutation, Resolver } from "type-graphql";
+import { Arg, Ctx, Mutation, Query, Resolver } from "type-graphql";
 import { ApplicationUser } from "../entities/ApplicationUser";
 import { Group } from "../entities/Group";
 import { MyContext } from "../types";
+import { CreateGroupInputType } from "../types/UserResponse";
 import { getUserFroUserId } from "../utilies/getUserFroimUserId";
 @Resolver()
 export class UserGroupResolver {
-  @Mutation(() => Boolean)
+  @Mutation(() => ApplicationUser)
   async createNewGroup(
     @Ctx() { em, request }: MyContext,
-    @Arg("groupName") groupName: string,
-    @Arg("memberList") list: @Field(type => [Int])
+    @Arg("data") { groupName, membersIdList }: CreateGroupInputType
   ) {
+    const userSet: Set<number> = new Set(membersIdList);
+    userSet.add(request.session.userId);
     const user = await getUserFroUserId(request.session.userId, em);
     const memberObjectList = await em.find(
       ApplicationUser,
       {
         id: {
-          $in: list,
+          $in: [...userSet],
         },
       },
       ["groupList"]
     );
-    console.log(memberObjectList);
     const group = em.create(Group, {
-      group_name: groupName,
+      name: groupName,
     });
-    user.groupList.add(group);
-    await em.persistAndFlush(user);
-    return true;
+    memberObjectList.forEach((member: ApplicationUser) => {
+      member.groupList.add(group);
+    });
+    em.persist(group);
+    await em.persistAndFlush(memberObjectList);
+    return user;
   }
 
   @Mutation(() => Boolean)
@@ -46,5 +49,26 @@ export class UserGroupResolver {
     } else {
       return false;
     }
+  }
+
+  @Query(() => Group, {
+    nullable: true,
+  })
+  async fetchGroupById(
+    @Ctx() { em, request }: MyContext,
+    @Arg("groupId") groupId: number
+  ) {
+    const user = await getUserFroUserId(request.session.userId, em);
+    if (groupId < 0 || !user) {
+      return null;
+    }
+    const group = await em.findOneOrFail(
+      Group,
+      {
+        id: groupId,
+      },
+      ["memberList", "transactionList", "transactionList.owner"]
+    );
+    return group;
   }
 }
